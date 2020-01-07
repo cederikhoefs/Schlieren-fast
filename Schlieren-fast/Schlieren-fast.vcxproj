@@ -32,10 +32,6 @@
     <Intel_OpenCL_Build_Rules Include="kernel.cl" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="lodepng.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="lodepng.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

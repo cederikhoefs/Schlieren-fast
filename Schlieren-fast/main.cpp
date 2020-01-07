@@ -4,9 +4,6 @@
 #define STD_EXPORT
 #define CSV_EXPORT
 #undef APP_CSV
-#undef PNG_EXPORT
-
-#include "lodepng.h"
 
 #include "CL/cl2.hpp"
 
@@ -18,36 +15,6 @@
 
 
 using namespace std;
-
-struct Color
-{
-	uint8_t R, G, B, A;
-};
-
-
-void draw_to_PNG(string filename, vector<Color> colors, int width, int height)
-{
-	int length = colors.size();
-	vector<unsigned char> Image(sizeof(Color) * length);
-	Color c;
-
-	for (int i = 0; i < colors.size(); i++) {
-
-		c = colors[i];
-
-		Image[4 * i + 0] = c.R;
-		Image[4 * i + 1] = c.G;
-		Image[4 * i + 2] = c.B;
-		Image[4 * i + 3] = c.A;
-
-	}
-
-	unsigned error = lodepng::encode(filename, Image, width, height);
-
-	//if there's an error, display it
-	if (error) std::cout << "encoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-
-}
 
 int main(int argc, char* argv[])
 {
@@ -155,22 +122,6 @@ int main(int argc, char* argv[])
 #endif
 #ifdef CSV_EXPORT
 			outfile << Iterations << ";" << Scale << ";" << Resolution << ";" << belegt << ";" << -log(belegt) / log(Scale / Resolution) << endl;
-#endif
-#ifdef PNG_EXPORT
-
-			string filename = "schlieren" + to_string(j) + "-" + to_string(i) + ".png";
-
-			vector<Color> c(Resolution*Resolution);
-
-
-			for (int row = 0; row < Resolution; row++) {
-				for (int col = 0; col < Resolution; col++) {
-					c[row * Resolution + col] = schlieren[row * Resolution + col] ? Color{ 0, 0, 0 , 255 } : Color{ 255, 255, 255, 255 };
-				}
-			}
-
-			draw_to_PNG(filename, c, Resolution, Resolution);
-
 #endif
 
 			delete[] schlieren;
