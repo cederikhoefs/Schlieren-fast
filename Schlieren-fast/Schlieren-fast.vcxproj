@@ -28,9 +28,20 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <Intel_OpenCL_Build_Rules Include="kernel.cl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="lodepng.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="lodepng.cpp" />
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{a56d10b9-82bd-4a59-bed6-2a0847e7b288}</ProjectGuid>
     <RootNamespace>Schlieren_fast</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -178,17 +189,6 @@
       <Command>If exist "*.cl" copy "*.cl" "$(OutDir)\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="GPUOpenCLProjectforWindows.cpp" />
-    <ClCompile Include="utils.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="GPUOpenCLProjectforWindows.h" />
-    <ClInclude Include="utils.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Intel_OpenCL_Build_Rules Include="Template.cl" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(INTELOCLSDKROOT)\BuildCustomizations\IntelOpenCL.targets" />
