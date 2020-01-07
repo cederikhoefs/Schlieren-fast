@@ -16,7 +16,7 @@ kernel void schlieren( global bool* schlieren, const double Scale, const int Res
 
 	double x_dx = x - delta;
 	double y_dx = y;
-
+	
 	double xdy = x;
 	double ydy = y + delta;
 
@@ -26,7 +26,7 @@ kernel void schlieren( global bool* schlieren, const double Scale, const int Res
 	for (int k = 0; k < Iterations; k++) {
 
 		if (x_dx * xdx < 0.0 || x_dy * xdy < 0.0) { //VzW
-			schlieren[idx] = true;//k;
+			schlieren[idx] = 1;//k;
 			return;
 		}
 
@@ -56,7 +56,7 @@ kernel void schlieren( global bool* schlieren, const double Scale, const int Res
 	
 	}
 
-	schlieren[idx] = false;
+	schlieren[idx] = 0;
 
 }
 /*
