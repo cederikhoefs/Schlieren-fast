@@ -260,3 +260,5 @@ paket-files/
 __pycache__/
 *.pyc
 *.csv
+/Schlieren-fast/10kiter16kpixel.xlsx
+*.xlsx

@@ -33,7 +33,22 @@ void printDevice(int i, cl::Device& d)
 
 }
 
-bool initOpenCL(cl::Device& dev, cl::Context& con, cl::Program& prog)
+void print2D(uint8_t * out, int res)
+{
+
+	for (int i = 0; i < res; i++) {
+		for (int j = 0; j < res; j++) {
+
+			//cout << (int)Schlieren[i * Resolution + j];
+			cout << ((out[i*res + j] == 1) ? '#' : ' ') << " ";
+
+		}
+		cout << endl;
+	}
+
+}
+
+bool initOpenCL(cl::Device& dev, cl::Context& con, cl::Program& prog, cl::CommandQueue& q)
 {
 
 	cl::Platform platform = cl::Platform::getDefault();
@@ -86,25 +101,27 @@ bool initOpenCL(cl::Device& dev, cl::Context& con, cl::Program& prog)
 		return false;
 	}
 	
+	q = cl::CommandQueue (con, dev);
+
 	return true;	   
 }
 
 cl::Device device;
 cl::Context context;
 cl::Program program;
+cl::CommandQueue queue;
 
-const int Resolution = 50;
+const int log2res = 14;
+const long long int Resolution = (1 << log2res);
 const double Scale = 6.0;
-const int Iteration = 1000;
+const int Iteration = 10000;
 const double Viewport_x = 0.0;
 const double Viewport_y = 0.0;
 
-void calculate(uint8_t * schlieren, int res = 32768, int iter = 1000, double scale = 6.0, double vx = 0.0, double vy = 0.0)
+void calculate(uint8_t * schlieren, long long int res = 32768, int iter = 1000, double scale = 6.0, double vx = 0.0, double vy = 0.0)
 {
-
-	cl::CommandQueue queue(context, device);
-
-	cl::Buffer schlierenbuffer(context, CL_MEM_READ_WRITE, sizeof(uint8_t) * Resolution * Resolution);
+	
+	cl::Buffer schlierenbuffer(context, CL_MEM_READ_WRITE, sizeof(uint8_t) * res * res);
 
 	cl::Kernel kernel = cl::Kernel(program, "schlieren");
 
@@ -115,13 +132,42 @@ void calculate(uint8_t * schlieren, int res = 32768, int iter = 1000, double sca
 	kernel.setArg(4, vx);
 	kernel.setArg(5, vy);
 
-	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(Resolution * Resolution), cl::NDRange(100));
+	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(res * res), cl::NullRange);
 	queue.finish();
 
 	queue.enqueueReadBuffer(schlierenbuffer, CL_TRUE, 0, sizeof(uint8_t) * Resolution * Resolution, schlieren);
 
 }
 
+void scaledown(uint8_t * schlieren_old, uint8_t * schlieren_new, int oldres)
+{
+	int newres = oldres / 2;
+	cl::Buffer oldbuffer(context, CL_MEM_READ_WRITE, sizeof(uint8_t) * oldres * oldres);
+	cl::Buffer newbuffer(context, CL_MEM_READ_WRITE, sizeof(uint8_t) * newres * newres);
+
+	cl::Kernel kernel = cl::Kernel(program, "scaledown");
+
+	kernel.setArg(0, oldbuffer);
+	kernel.setArg(1, newbuffer);
+	kernel.setArg(2, oldres);
+
+	queue.enqueueWriteBuffer(oldbuffer, CL_FALSE, 0, sizeof(uint8_t) * oldres * oldres, schlieren_old);
+	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(newres * newres), cl::NullRange/*cl::NDRange(newres)*/);
+	queue.finish();
+	queue.enqueueReadBuffer(newbuffer, CL_TRUE, 0, sizeof(uint8_t) * newres * newres, schlieren_new);
+
+}
+
+int sumup(uint8_t * schlieren, int res)
+{
+	int count = 0;
+	for (int i = 0; i < res; i++)
+		for (int j = 0; j < res; j++)
+			if (schlieren[j*res + i] == 1)
+				count++;
+
+	return count;
+}
 
 int main(int argc, char* argv[])
 {
@@ -133,7 +179,7 @@ int main(int argc, char* argv[])
 #endif
 #endif
 
-	if (initOpenCL(device, context, program)){
+	if (initOpenCL(device, context, program, queue)){
 		cout << "Inited OpenCL successfully!" << endl;
 	}
 	else {
@@ -141,27 +187,41 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-	uint8_t * Schlieren = new uint8_t[Resolution * Resolution];
+	cout << "Calculating null sets..." << endl;
 
-	calculate(Schlieren, Resolution, Iteration, Scale, Viewport_x, Viewport_y);
+	uint8_t * SchlierenA = new uint8_t[Resolution * Resolution];
+	uint8_t * SchlierenB = new uint8_t[Resolution / 2L * Resolution / 2L];
 
-	for (int i = 0; i < Resolution; i++) {
-		for (int j = 0; j < Resolution; j++) {
+	uint8_t * Schlieren[] = { SchlierenA, SchlierenB };
 
-			//cout << (int)Schlieren[i * Resolution + j];
-			cout << ((Schlieren[i*Resolution + j]==1) ? '#' : ' ') << " ";
+	calculate(SchlierenA, Resolution, Iteration, Scale, Viewport_x, Viewport_y);
 
-		}
-		cout << endl;
+	cout << "Finished!" << endl;
+
+	int res = Resolution;
+	int N = 0;
+
+	outfile << "S;k;r;N;log r;log N" << endl;
+
+	for (int i = 0; i < log2res ; i++) {
+		cout << "Scaledown from " << res << " to " << res/2 << endl;
+		N = sumup(Schlieren[i % 2], res);
+		outfile << Scale << ";" << Iteration << ";" << res/Scale << ";" << N << ";" << log10(res/Scale) << ";" << log10(N) << endl;
+		scaledown(Schlieren[i % 2], Schlieren[(i + 1) % 2], res);
+		cout << "Scaledown & sumup finished..." << endl;
+		res /= 2;
+
 	}
 
 #ifdef CSV_EXPORT
 	outfile.close();
 #endif
-	char x;
-	cin >> x;
 
-	delete[] Schlieren;
+	delete[] SchlierenA, SchlierenB;
+
+	cout << "Finished..." << endl;
+
+	system("PAUSE");
 
 	return 0;
 

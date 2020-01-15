@@ -57,8 +57,29 @@ kernel void schlieren( global bool* schlieren, const double Scale, const int Res
 	}
 
 	schlieren[idx] = 0;
+}
+
+
+kernel void scaledown(global uchar * oldbuffer, global uchar * newbuffer, const int oldres){ 
+
+	const int idx = get_global_id(0);
+	int newres = oldres / 2;
+	
+	const int i = idx % newres;
+	const int j = idx / newres;
+
+	const int oldi = i * 2;
+	const int oldj = j * 2;
+
+	newbuffer[idx] = ((oldbuffer[oldres*oldj + oldi] == 1) | (oldbuffer[oldres*(oldj+1) + oldi] == 1) | (oldbuffer[oldres*(oldj) + oldi + 1] == 1) | (oldbuffer[oldres*(oldj+1) + oldi + 1] == 1))? 1 : 0;
 
 }
+
+
+
+
+
+
 /*
 kernel void twotothenegativek( global bool* schlieren, const double Scale, const int Resolution, const int Iterations, const double vx, const double vy) {
 
