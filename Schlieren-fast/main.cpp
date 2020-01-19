@@ -3,7 +3,7 @@
 
 #define STD_EXPORT
 #define CSV_EXPORT
-#undef APP_CSV
+#define APP_CSV
 
 #include "CL/cl2.hpp"
 
@@ -75,8 +75,14 @@ bool initOpenCL(cl::Device& dev, cl::Context& con, cl::Program& prog, cl::Comman
 
 	unsigned int devid = 0;
 
-	cout << "Device choice: ";
-	cin >> devid;
+	if (gpus.size() != 1) {
+		cout << "Device choice: ";
+		cin >> devid;
+	}
+	else {
+		cout << "Choosing the only GPU" << endl;
+		devid = 0;
+	}
 
 	if (devid >= 0 && devid < gpus.size()) {
 		dev = gpus[devid];
@@ -111,10 +117,11 @@ cl::Context context;
 cl::Program program;
 cl::CommandQueue queue;
 
-const int log2res = 14;
-const long long int Resolution = (1 << log2res);
+const int log2res = 10;
+const int PseudoTiles = 16;
+const long long int Resolution = (1 << log2res) * PseudoTiles;
 const double Scale = 6.0;
-const int Iteration = 10000;
+const int Iteration = 1000;
 const double Viewport_x = 0.0;
 const double Viewport_y = 0.0;
 
@@ -200,13 +207,15 @@ int main(int argc, char* argv[])
 
 	int res = Resolution;
 	int N = 0;
-
-	outfile << "S;k;r;N;log r;log N" << endl;
-
+#ifdef CSV_EXPORT
+#ifndef APP_CSV
+	outfile << "S;k;B;r;N;log r;log N" << endl;
+#endif
+#endif
 	for (int i = 0; i < log2res ; i++) {
 		cout << "Scaledown from " << res << " to " << res/2 << endl;
 		N = sumup(Schlieren[i % 2], res);
-		outfile << Scale << ";" << Iteration << ";" << res/Scale << ";" << N << ";" << log10(res/Scale) << ";" << log10(N) << endl;
+		outfile << Scale << ";" << Iteration << ";" << res << ";" << res/Scale << ";" << N << ";" << log10(res/Scale) << ";" << log10(N) << endl;
 		scaledown(Schlieren[i % 2], Schlieren[(i + 1) % 2], res);
 		cout << "Scaledown & sumup finished..." << endl;
 		res /= 2;
