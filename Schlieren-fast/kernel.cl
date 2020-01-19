@@ -1,5 +1,5 @@
 
-kernel void schlieren( global bool* schlieren, const double Scale, const int Resolution, const int Iterations, const double vx, const double vy) {
+kernel void schlieren( global uchar* schlieren, const double Scale, const int Resolution, const int Iterations, const double vx, const double vy) {
 
 	const int idx = get_global_id(0);
 
